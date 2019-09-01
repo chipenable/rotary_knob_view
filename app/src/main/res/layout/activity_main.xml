@@ -17,11 +17,11 @@
         app:layout_constraintRight_toRightOf="parent" />
 
     <ru.chipenable.rotaryknobview.RotaryKnobView
-        android:padding="16dp"
         android:id="@+id/rotary_knob_view"
-        android:layout_width="200dp"
+        android:layout_width="0dp"
         android:layout_height="200dp"
-        android:layout_marginBottom="64dp"
+        android:layout_marginBottom="16dp"
+        android:padding="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

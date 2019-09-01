@@ -14,6 +14,10 @@ public class MainActivity extends AppCompatActivity {
 
         TextView knobValueView = findViewById(R.id.knob_value_view);
         RotaryKnobView rotaryKnobView = findViewById(R.id.rotary_knob_view);
+        rotaryKnobView.setAnglesLimit(135, 45);
+        rotaryKnobView.setValueLimit(0, 1000);
+        rotaryKnobView.setProgress(500);
+
         rotaryKnobView.setOnRotationListener(position ->
                 knobValueView.setText(String.valueOf(position))
         );

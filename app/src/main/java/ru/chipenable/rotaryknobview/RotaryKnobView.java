@@ -5,6 +5,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.os.Build;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -23,12 +25,13 @@ public class RotaryKnobView extends View {
     private float angleMax = 45;
     private int minValue = 0;
     private int maxValue = 100;
+    private int progress = 0;
 
     private final int MIN_WIDTH = 50;
     private final int DEFAULT_KNOB_COLOR = 0xff888888;
 
     private static final String TAG = RotaryKnobView.class.getName();
-    private static final boolean DBG = true;
+    private static final boolean DBG = false;
 
     public interface RotationListener {
 
@@ -57,6 +60,59 @@ public class RotaryKnobView extends View {
         init(context, attrs);
     }
 
+    public void setAnglesLimit(float angleMin, float angleMax){
+        this.angleMin = angleMin;
+        this.angleMax = angleMax;
+    }
+
+    public void setValueLimit(int minValue, int maxValue){
+        if (minValue > maxValue){
+            throw new IllegalArgumentException(
+                    String.format("minValue (%d) must be less than maxValue (%d)", minValue, maxValue));
+        }
+
+        this.minValue = minValue;
+        this.maxValue = maxValue;
+    }
+
+    public void setProgress(int progress){
+        if (progress < minValue){
+            this.progress = minValue;
+        }
+        else if (progress > maxValue){
+            this.progress = maxValue;
+        }
+        else{
+            this.progress = progress;
+        }
+
+        rotationAngle = progressToAngle(progress);
+        invalidate();
+    }
+
+    @Override
+    public Parcelable onSaveInstanceState() {
+        Parcelable superState = super.onSaveInstanceState();
+        SavedState savedState = new SavedState(superState);
+        savedState.angle = rotationAngle;
+        savedState.progress = progress;
+        savedState.minValue = minValue;
+        savedState.maxValue = maxValue;
+        return savedState;
+    }
+
+    @Override
+    public void onRestoreInstanceState(Parcelable state) {
+        SavedState savedState = (SavedState) state;
+        super.onRestoreInstanceState(savedState.getSuperState());
+        rotationAngle = savedState.angle;
+        progress = savedState.progress;
+        minValue = savedState.minValue;
+        maxValue = savedState.maxValue;
+
+        notifyListener();
+    }
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
@@ -79,11 +135,12 @@ public class RotaryKnobView extends View {
             angle += (2*Math.PI);
         }
         angle = (float)Math.toDegrees(angle);
+
         if (DBG) {
-            Log.d(TAG, String.format("angle: %f", angle));
+            Log.d(TAG, String.format("raw angle: %f", angle));
         }
 
-        if (angle != rotationAngle) {
+        if (!isFloatEqual(angle, rotationAngle)) {
             rotationAngle = angle;
 
             if (!isAngleValid(angle)){
@@ -91,41 +148,35 @@ public class RotaryKnobView extends View {
             }
 
             invalidate();
-
-
-            if (rotationListener != null){
-                float enabledAngle = angle;
-                if (angle >= minValue && angle < 360){
-                    enabledAngle = (angle - angleMin) % 360;
-                }
-                else if (angle >= 0 && angle <= maxValue){
-
-                }
-
-                int range = maxValue - minValue;
-                int value = (int)(enabledAngle * range)/360;
-                rotationListener.onRotationChangeListener(value);
-            }
+            progress = angleToProgress(rotationAngle);
+            notifyListener();
         }
+
         return true;
-        //return super.onTouchEvent(event);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
 
-
-
         float centerX = getPivotX();
         float centerY = getPivotY();
-        float knobRadius = (getWidth() - getPaddingStart() - getPaddingEnd())/2;
+        float width = getWidth() - getPaddingStart() - getPaddingEnd();
+        float height = getHeight() - getPaddingTop() - getPaddingBottom();
+        float minSize = width < height? width : height;
+        float knobRadius = minSize/2;
 
-        canvas.drawLine(centerX, centerY, touchPoint.x, touchPoint.y, knobPaint);
+        if (DBG) {
+            canvas.drawLine(centerX, centerY, touchPoint.x, touchPoint.y, knobPaint);
+        }
 
         canvas.rotate(rotationAngle, centerX, centerY);
         canvas.drawCircle(centerX, centerY, knobRadius, knobPaint);
         canvas.drawCircle(centerX + (3*knobRadius)/4, centerY, knobRadius/5, knobPaint);
-        canvas.drawLine(centerX, centerY, centerX + knobRadius, centerY, knobPaint);
+
+        if (DBG){
+            canvas.drawLine(centerX, centerY, centerX + knobRadius, centerY, knobPaint);
+        }
+
     }
 
     public void setOnRotationListener(RotationListener listener){
@@ -140,10 +191,11 @@ public class RotaryKnobView extends View {
         knobPaint.setStrokeWidth(2f);
 
         touchPoint = new PointF();
+        rotationAngle = angleMin;
     }
 
     private boolean isAngleValid(float angle){
-        if (angleMin == 0 && angleMax == 0){
+        if (isFloatZero(angleMin) && isFloatZero(angleMax)){
             return true;
         }
 
@@ -156,7 +208,7 @@ public class RotaryKnobView extends View {
     }
 
     private float calcBoundaryAngle(float angle){
-        if (angleMin == 0 && angleMax == 0){
+        if (isFloatZero(angleMin) && isFloatZero(angleMax)){
             return angle;
         }
 
@@ -175,7 +227,7 @@ public class RotaryKnobView extends View {
         double distanceToMin = Math.sqrt(Math.pow(p1 - min1, 2) + Math.pow(p2 - min2, 2));
         double distanceToMax = Math.sqrt(Math.pow(p1 - max1, 2) + Math.pow(p2 - max2, 2));
 
-        if (distanceToMin <= distanceToMax){
+        if (distanceToMin < distanceToMax){
             return angleMin;
         }
         else{
@@ -183,6 +235,107 @@ public class RotaryKnobView extends View {
         }
     }
 
+    private int angleToProgress(float angle){
+        if (isFloatEqual(angleMin, angle)){
+            return minValue;
+        }
+        else if (isFloatEqual(angleMax, angle)){
+            return maxValue;
+        }
 
+        float angleRange;
+        if (angleMax > angleMin){
+            angle -= angleMin;
+            angleRange = angleMax - angleMin;
+        }
+        else{
+            if (angle >= angleMin && angle < 360){
+                angle -= angleMin;
+            }
+            else if (angle >= 0 && angle <= angleMax){
+                angle = 360 - angleMin + angle;
+            }
+
+            angleRange = 360 - angleMin + angleMax;
+        }
+
+        if (DBG){
+            Log.d(TAG, String.format("calc progress. angle: %f", angle));
+        }
+
+        int valueRange = maxValue - minValue;
+        return (int)((angle * valueRange)/angleRange) + minValue;
+    }
+
+    private float progressToAngle(int progress){
+        float angleRange;
+        if (isFloatZero(angleMin) && isFloatZero(angleMax)){
+            angleRange = 360;
+        }
+        else if (angleMin < angleMax){
+            angleRange = angleMax - angleMin;
+        }
+        else{
+            angleRange = 360 - angleMin + angleMax;
+        }
+
+        int valueRange = maxValue - minValue;
+        return (progress * angleRange)/valueRange + angleMin;
+    }
+
+    private void notifyListener(){
+        if (rotationListener != null){
+            rotationListener.onRotationChangeListener(progress);
+        }
+    }
+
+    private boolean isFloatEqual(float f1, float f2){
+        return Math.abs(f1 - f2) < 0.00001f;
+    }
+
+    private boolean isFloatZero(float f1){
+        return isFloatEqual(f1, 0);
+    }
+
+    private static class SavedState extends BaseSavedState{
+
+        float angle;
+        int progress;
+        int minValue;
+        int maxValue;
+
+        public SavedState(Parcelable superState) {
+            super(superState);
+        }
+
+        private SavedState(Parcel in) {
+            super(in);
+            angle = in.readFloat();
+            progress = in.readInt();
+            minValue = in.readInt();
+            maxValue = in.readInt();
+        }
+
+        @Override
+        public void writeToParcel(Parcel out, int flags) {
+            super.writeToParcel(out, flags);
+            out.writeInt(maxValue);
+            out.writeInt(minValue);
+            out.writeInt(progress);
+            out.writeFloat(angle);
+        }
+
+        public static final Parcelable.Creator<SavedState> CREATOR
+                = new Parcelable.Creator<SavedState>() {
+            public SavedState createFromParcel(Parcel in) {
+                return new SavedState(in);
+            }
+
+            public SavedState[] newArray(int size) {
+                return new SavedState[size];
+            }
+        };
+
+    }
 
 }
