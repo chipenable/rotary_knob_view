@@ -12,11 +12,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        int progress = 100;
         TextView knobValueView = findViewById(R.id.knob_value_view);
+        knobValueView.setText("" + progress);
+
         RotaryKnobView rotaryKnobView = findViewById(R.id.rotary_knob_view);
         rotaryKnobView.setAnglesLimit(135, 45);
         rotaryKnobView.setValueLimit(0, 1000);
-        rotaryKnobView.setProgress(500);
+        rotaryKnobView.setProgress(progress);
+        rotaryKnobView.setDrawable(R.drawable.rotary_knob_img);
 
         rotaryKnobView.setOnRotationListener(position ->
                 knobValueView.setText(String.valueOf(position))

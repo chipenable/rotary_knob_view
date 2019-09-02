@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PointF;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -12,6 +13,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import androidx.annotation.DrawableRes;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
@@ -26,6 +28,7 @@ public class RotaryKnobView extends View {
     private int minValue = 0;
     private int maxValue = 100;
     private int progress = 0;
+    private Drawable rotaryKnobImg;
 
     private final int MIN_WIDTH = 50;
     private final int DEFAULT_KNOB_COLOR = 0xff888888;
@@ -58,6 +61,10 @@ public class RotaryKnobView extends View {
     public RotaryKnobView(Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         init(context, attrs);
+    }
+
+    public void setDrawable(@DrawableRes int resId){
+        rotaryKnobImg = getResources().getDrawable(resId);
     }
 
     public void setAnglesLimit(float angleMin, float angleMax){
@@ -170,8 +177,15 @@ public class RotaryKnobView extends View {
         }
 
         canvas.rotate(rotationAngle, centerX, centerY);
-        canvas.drawCircle(centerX, centerY, knobRadius, knobPaint);
-        canvas.drawCircle(centerX + (3*knobRadius)/4, centerY, knobRadius/5, knobPaint);
+        if (rotaryKnobImg != null) {
+            rotaryKnobImg.setBounds((int)(centerX - knobRadius), (int)(centerY - knobRadius),
+                    (int)(centerX + knobRadius), (int)(centerY + knobRadius));
+            rotaryKnobImg.draw(canvas);
+        }
+        else{
+            canvas.drawCircle(centerX, centerY, knobRadius, knobPaint);
+            canvas.drawCircle(centerX + (3*knobRadius)/4, centerY, knobRadius/5, knobPaint);
+        }
 
         if (DBG){
             canvas.drawLine(centerX, centerY, centerX + knobRadius, centerY, knobPaint);
