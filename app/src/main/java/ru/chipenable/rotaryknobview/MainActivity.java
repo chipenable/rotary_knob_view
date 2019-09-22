@@ -18,6 +18,7 @@ public class MainActivity extends AppCompatActivity {
 
         RotaryKnobView rotaryKnobView = findViewById(R.id.rotary_knob_view);
         rotaryKnobView.setAnglesLimit(135, 45);
+        rotaryKnobView.setMarkAmount(10, 5);
         rotaryKnobView.setValueLimit(0, 1000);
         rotaryKnobView.setProgress(progress);
         rotaryKnobView.setDrawable(R.drawable.rotary_knob_img);

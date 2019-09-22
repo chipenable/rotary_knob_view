@@ -13,6 +13,9 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import androidx.annotation.DrawableRes;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -24,11 +27,12 @@ public class RotaryKnobView extends View {
     private RotationListener rotationListener;
     private float rotationAngle;
     private float angleMin = 135;
-    private float angleMax = 45;
+    private float angleMax = 350;
     private int minValue = 0;
     private int maxValue = 100;
     private int progress = 0;
     private Drawable rotaryKnobImg;
+    private Scale scale;
 
     private final int MIN_WIDTH = 50;
     private final int DEFAULT_KNOB_COLOR = 0xff888888;
@@ -70,6 +74,11 @@ public class RotaryKnobView extends View {
     public void setAnglesLimit(float angleMin, float angleMax){
         this.angleMin = angleMin;
         this.angleMax = angleMax;
+    }
+
+    public void setMarkAmount(int bigMarkAmount, int smallMarkAmount){
+        scale.bigMarks = bigMarkAmount;
+        scale.smallMarks = smallMarkAmount;
     }
 
     public void setValueLimit(int minValue, int maxValue){
@@ -122,6 +131,7 @@ public class RotaryKnobView extends View {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
@@ -176,6 +186,9 @@ public class RotaryKnobView extends View {
             canvas.drawLine(centerX, centerY, touchPoint.x, touchPoint.y, knobPaint);
         }
 
+        scale.setBounds(angleMin, angleMax);
+        scale.draw(canvas, centerX, centerY, knobRadius, rotationAngle);
+
         canvas.rotate(rotationAngle, centerX, centerY);
         if (rotaryKnobImg != null) {
             rotaryKnobImg.setBounds((int)(centerX - knobRadius), (int)(centerY - knobRadius),
@@ -202,10 +215,12 @@ public class RotaryKnobView extends View {
         knobPaint.setStyle(Paint.Style.STROKE);
         knobPaint.setColor(DEFAULT_KNOB_COLOR);
         knobPaint.setAntiAlias(true);
-        knobPaint.setStrokeWidth(2f);
+        knobPaint.setStrokeWidth(3f);
 
         touchPoint = new PointF();
         rotationAngle = angleMin;
+
+        scale = new Scale();
     }
 
     private boolean isAngleValid(float angle){
@@ -309,6 +324,85 @@ public class RotaryKnobView extends View {
 
     private boolean isFloatZero(float f1){
         return isFloatEqual(f1, 0);
+    }
+
+    private class Scale {
+
+        private Paint scalePaint;
+        int smallMarks;
+        int bigMarks;
+        float angleRange;
+        float angleMin;
+        float angleMax;
+        int smallMarkLength;
+        int bigMarkLength;
+
+        public Scale(){
+            scalePaint = new Paint();
+            scalePaint.setStrokeWidth(5);
+            smallMarks = 10;
+            bigMarks = 10;
+            angleMin = 0;
+            angleMax = 0;
+            angleRange = range();
+            smallMarkLength = 20;
+            bigMarkLength = 40;
+        }
+
+        public void setBounds(float angleMin, float angleMax){
+            this.angleMin = angleMin;
+            this.angleMax = angleMax;
+            this.angleRange = range();
+        }
+
+        public void draw(Canvas canvas, float centerX, float centerY, float radius, float rotationAngle){
+            int amount = smallMarks * bigMarks;
+            float delta = angleRange/amount;
+
+            for(int i = 0; i <= amount; i++){
+                float markAngle = angleMin + (delta * i);
+                double angleRad = Math.toRadians(markAngle);
+                int markLength = i % smallMarks == 0? bigMarkLength : smallMarkLength;
+                float y = (float)Math.sin(angleRad)*(radius + markLength);
+                float x = (float)Math.cos(angleRad)*(radius + markLength);
+
+                boolean beforeRotationAngle;
+                if (angleMin < angleMax){
+                    beforeRotationAngle = markAngle <= rotationAngle;
+                }
+                else {
+                    if (rotationAngle >= angleMin && rotationAngle < 360){
+                        beforeRotationAngle = markAngle < rotationAngle;
+                    }
+                    else{
+                        beforeRotationAngle = markAngle <= 360 + rotationAngle;
+                    }
+                }
+
+                int color = beforeRotationAngle? 0xff000000 : 0xffcccccc;
+                scalePaint.setColor(color);
+                canvas.drawLine(x + centerX, y + centerY, centerX, centerY, scalePaint);
+            }
+
+            int color = scalePaint.getColor();
+            scalePaint.setColor(0xffffffff);
+            scalePaint.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(centerX, centerY, radius + 5, scalePaint);
+            scalePaint.setColor(color);
+            scalePaint.setStyle(Paint.Style.STROKE);
+        }
+
+        private float range(){
+            float result;
+            if (angleMin < angleMax){
+                result = angleMax - angleMin;
+            }
+            else{
+                result = (360 - angleMin) + angleMax;
+            }
+            return result;
+        }
+
     }
 
     private static class SavedState extends BaseSavedState{
