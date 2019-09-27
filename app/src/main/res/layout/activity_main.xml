@@ -6,24 +6,57 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/knob_value_view"
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="32dp"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.5" />
+
+    <TextView
+        android:id="@+id/knob_value_view_1"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:textSize="24sp"
-        app:layout_constraintBottom_toTopOf="@+id/rotary_knob_view"
+        android:gravity="center"
+        app:layout_constraintBottom_toTopOf="@+id/rotary_knob_view_1"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent" />
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ru.chipenable.rotaryknobview.RotaryKnobView
-        android:id="@+id/rotary_knob_view"
+        android:id="@+id/rotary_knob_view_1"
         android:layout_width="0dp"
         android:layout_height="200dp"
-        android:layout_marginBottom="16dp"
         android:padding="16dp"
+        app:layout_constraintBottom_toTopOf="@+id/guideline"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/knob_value_view_2"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@+id/rotary_knob_view_2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/guideline" />
+
+    <ru.chipenable.rotaryknobview.RotaryKnobView
+        android:id="@+id/rotary_knob_view_2"
+        android:layout_width="0dp"
+        android:layout_height="200dp"
+        android:padding="16dp"
+        app:angleMax="45"
+        app:angleMin="135"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:maxValue="200"
+        app:minValue="100"
+        app:progress="30"
+        app:rotaryKnobDrawable="@drawable/rotary_knob" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

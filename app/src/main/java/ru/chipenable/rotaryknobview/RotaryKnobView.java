@@ -1,6 +1,7 @@
 package ru.chipenable.rotaryknobview;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PointF;
@@ -12,9 +13,6 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.Nullable;
@@ -31,7 +29,7 @@ public class RotaryKnobView extends View {
     private int minValue = 0;
     private int maxValue = 100;
     private int progress = 0;
-    private Drawable rotaryKnobImg;
+    private Drawable rotaryKnobDrawable;
     private Scale scale;
 
     private final int MIN_WIDTH = 50;
@@ -68,7 +66,7 @@ public class RotaryKnobView extends View {
     }
 
     public void setDrawable(@DrawableRes int resId){
-        rotaryKnobImg = getResources().getDrawable(resId);
+        rotaryKnobDrawable = getResources().getDrawable(resId);
     }
 
     public void setAnglesLimit(float angleMin, float angleMax){
@@ -91,15 +89,19 @@ public class RotaryKnobView extends View {
         this.maxValue = maxValue;
     }
 
-    public void setProgress(int progress){
-        if (progress < minValue){
-            this.progress = minValue;
+    public int getProgress(){
+        return progress;
+    }
+
+    public void setProgress(int value){
+        if (value < minValue){
+            progress = minValue;
         }
-        else if (progress > maxValue){
-            this.progress = maxValue;
+        else if (value > maxValue){
+            progress = maxValue;
         }
         else{
-            this.progress = progress;
+            progress = value;
         }
 
         rotationAngle = progressToAngle(progress);
@@ -190,10 +192,10 @@ public class RotaryKnobView extends View {
         scale.draw(canvas, centerX, centerY, knobRadius, rotationAngle);
 
         canvas.rotate(rotationAngle, centerX, centerY);
-        if (rotaryKnobImg != null) {
-            rotaryKnobImg.setBounds((int)(centerX - knobRadius), (int)(centerY - knobRadius),
+        if (rotaryKnobDrawable != null) {
+            rotaryKnobDrawable.setBounds((int)(centerX - knobRadius), (int)(centerY - knobRadius),
                     (int)(centerX + knobRadius), (int)(centerY + knobRadius));
-            rotaryKnobImg.draw(canvas);
+            rotaryKnobDrawable.draw(canvas);
         }
         else{
             canvas.drawCircle(centerX, centerY, knobRadius, knobPaint);
@@ -221,6 +223,24 @@ public class RotaryKnobView extends View {
         rotationAngle = angleMin;
 
         scale = new Scale();
+
+        TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.RotaryKnobView,
+                0, 0);
+
+        try {
+            rotaryKnobDrawable = a.getDrawable(R.styleable.RotaryKnobView_rotaryKnobDrawable);
+            angleMin = a.getInteger(R.styleable.RotaryKnobView_angleMin, 135);
+            angleMax = a.getInteger(R.styleable.RotaryKnobView_angleMax, 45);
+            minValue = a.getInteger(R.styleable.RotaryKnobView_minValue, 0);
+            maxValue = a.getInteger(R.styleable.RotaryKnobView_maxValue, 100);
+
+            int progress = a.getInteger(R.styleable.RotaryKnobView_progress, 0);
+            setProgress(progress);
+
+        } finally {
+            a.recycle();
+        }
+
     }
 
     private boolean isAngleValid(float angle){
@@ -309,7 +329,7 @@ public class RotaryKnobView extends View {
         }
 
         int valueRange = maxValue - minValue;
-        return (progress * angleRange)/valueRange + angleMin;
+        return ((progress - minValue) * angleRange)/valueRange + angleMin;
     }
 
     private void notifyListener(){
@@ -339,7 +359,9 @@ public class RotaryKnobView extends View {
 
         public Scale(){
             scalePaint = new Paint();
-            scalePaint.setStrokeWidth(5);
+            scalePaint.setAntiAlias(true);
+            scalePaint.setStrokeWidth(3f);
+
             smallMarks = 10;
             bigMarks = 10;
             angleMin = 0;
